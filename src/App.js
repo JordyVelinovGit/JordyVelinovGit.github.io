@@ -40,10 +40,10 @@ class App extends React.Component {
               <Grid item xs={12} md={12}>
                 <NumberInput />
               </Grid>
-              <Grid item xs={12} md={7}>
+              <Grid item xs={12} lg={9}>
                 <PageReplacement setResults={this.setFifoResults} />
               </Grid>
-              <Grid item xs={12} md={5}>
+              <Grid item xs={12} lg={3}>
                 {/* Nested Grid for Stats and List */}
                 <Grid container direction="column" spacing={2}>
                   <Grid item xs={12}>
