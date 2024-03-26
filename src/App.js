@@ -16,9 +16,7 @@ const theme = createMuiTheme({
     secondary: {
       main: '#19857b', // Example secondary color
     },
-    // You can also add error, warning, info, success, and other color types
   },
-  // You can also customize typography, breakpoints, etc.
 });
 
 class App extends React.Component {
