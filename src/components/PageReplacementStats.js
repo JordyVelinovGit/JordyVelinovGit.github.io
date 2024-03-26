@@ -5,13 +5,13 @@ import { makeStyles } from '@material-ui/core/styles';
 const useStyles = makeStyles((theme) => ({
   card: {
     margin: theme.spacing(2),
-    overflowX: "auto", // Ensures the table is contained within the card
+    overflowX: "auto",
   },
   table: {
-    minWidth: 300, // Adjust based on your layout needs
+    minWidth: 300,
   },
   header: {
-    backgroundColor: theme.palette.background.default, // Use a theme-appropriate color
+    backgroundColor: theme.palette.background.default,
   },
 }));
 
@@ -24,8 +24,7 @@ const PageReplacementStats = ({ results }) => {
   const capacityMisses = results.filter((r) => r.compulsoryOrCapacity === 'Capacity').length;
   const misses = total - hits;
 
-  // Prevent division by zero
-  const formatPercentage = (value) => (total ? ((value / total) * 100).toFixed(2) + '%' : 'N/A');
+  const formatPercentage = (value) => (total ? ((value / total) * 100).toFixed(2) + '%' : '0%');
 
   return (
     <Card className={classes.card}>

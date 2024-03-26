@@ -53,6 +53,7 @@ function fifoPageReplacement(pages, cacheSize) {
     for (let page of pages) {
         let hitOrMiss = '';
         let compulsoryOrCapacity = '';
+        let evicted = null;
 
         if (cache.includes(page)) {
             hitOrMiss = 'Hit';
@@ -60,17 +61,22 @@ function fifoPageReplacement(pages, cacheSize) {
         } else {
             hitOrMiss = 'Miss';
             misses++;
-
             compulsoryOrCapacity = (cache.length < cacheSize) ? 'Compulsory' : 'Capacity';
 
             if (cache.length >= cacheSize) {
-                cache.shift();
+                evicted = cache.shift();
             }
 
             cache.push(page);
         }
 
-        results.push({ page, hitOrMiss, compulsoryOrCapacity, cache: [...cache] });
+        results.push({
+            page,
+            hitOrMiss,
+            compulsoryOrCapacity,
+            cache: [...cache],
+            evicted: evicted
+        });
     }
 
     return { results, hits, misses };
@@ -80,65 +86,80 @@ function mruPageReplacement(pages, cacheSize) {
     let cache = [];
     let results = [];
     let cachePositions = new Map();
+    let lastUsedIndexMap = new Map();
 
     pages.forEach((page, index) => {
         let hitOrMiss = '';
         let compulsoryOrCapacity = '';
+        let evicted = null;
 
         if (cache.includes(page)) {
             hitOrMiss = 'Hit';
             cachePositions.set(page, index);
+            lastUsedIndexMap.set(page, index);
         } else {
             hitOrMiss = 'Miss';
             compulsoryOrCapacity = (cache.length < cacheSize) ? 'Compulsory' : 'Capacity';
 
             if (cache.length >= cacheSize) {
-                let mru = [...cachePositions.entries()].reduce((mru, entry) => entry[1] > mru[1] ? entry : mru);
-                cachePositions.delete(mru[0]);
-                cache[cache.indexOf(mru[0])] = page;
-            } else {
-                cache.push(page);
+                let mruPage = [...cache].reduce((a, b) => lastUsedIndexMap.get(a) > lastUsedIndexMap.get(b) ? a : b);
+                evicted = mruPage;
+                cache.splice(cache.indexOf(mruPage), 1);
+                lastUsedIndexMap.delete(mruPage);
             }
-
-            cachePositions.set(page, index);
+            cache.push(page);
+            lastUsedIndexMap.set(page, index);
         }
 
-        results.push({ page, hitOrMiss, compulsoryOrCapacity, cache: [...cache] });
+        results.push({
+            page,
+            hitOrMiss,
+            compulsoryOrCapacity,
+            cache: [...cache],
+            evicted: evicted
+        });
     });
 
     return { results };
 }
 
-
-
 function lruPageReplacement(pages, cacheSize) {
     let cache = [];
     let results = [];
-    let cachePositions = new Map();
+    let lastUsedIndexMap = new Map();
 
     pages.forEach((page, index) => {
         let hitOrMiss = '';
         let compulsoryOrCapacity = '';
+        let evicted = null;
+        let evictedIndex = -1;
 
         if (cache.includes(page)) {
             hitOrMiss = 'Hit';
-            cachePositions.set(page, index);
+            lastUsedIndexMap.set(page, index);
         } else {
             hitOrMiss = 'Miss';
-            compulsoryOrCapacity = (cache.length < cacheSize) ? 'Compulsory' : 'Capacity';
+            compulsoryOrCapacity = cache.length < cacheSize ? 'Compulsory' : 'Capacity';
 
             if (cache.length >= cacheSize) {
-                let lru = [...cachePositions.entries()].reduce((lru, entry) => entry[1] < lru[1] ? entry : lru);
-                cachePositions.delete(lru[0]);
-                cache[cache.indexOf(lru[0])] = page;
+                const lruPage = [...lastUsedIndexMap.entries()].reduce((a, b) => a[1] < b[1] ? a : b)[0];
+                evicted = lruPage;
+                evictedIndex = cache.findIndex((p) => p === lruPage);
+                cache[evictedIndex] = page;
+                lastUsedIndexMap.delete(lruPage);
             } else {
                 cache.push(page);
             }
-
-            cachePositions.set(page, pages.indexOf(page));
+            lastUsedIndexMap.set(page, index);
         }
 
-        results.push({ page, hitOrMiss, compulsoryOrCapacity, cache: [...cache] });
+        results.push({
+            page,
+            hitOrMiss,
+            compulsoryOrCapacity,
+            cache: [...cache],
+            evicted: evicted
+        });
     });
 
     return { results };
@@ -146,32 +167,26 @@ function lruPageReplacement(pages, cacheSize) {
 
 function mfuPageReplacement(pages, cacheSize) {
     let cache = [];
-    let usageCounts = new Map();
     let results = [];
-    let pageIndexes = new Map();
+    let usageCounts = new Map();
 
-    pages.forEach((page, index) => {
-        let hitOrMiss = "Miss";
-        let compulsoryOrCapacity = "Compulsory";
+    pages.forEach((page) => {
+        let hitOrMiss = '';
+        let compulsoryOrCapacity = '';
+        let evicted = null;
 
         usageCounts.set(page, (usageCounts.get(page) || 0) + 1);
-        pageIndexes.set(page, index);
 
         if (cache.includes(page)) {
-            hitOrMiss = "Hit";
-            compulsoryOrCapacity = "";
+            hitOrMiss = 'Hit';
         } else {
-            if (cache.length >= cacheSize) {
-                compulsoryOrCapacity = "Capacity";
-                let mfuPage = [...cache].sort((a, b) => {
-                    const freqCompare = usageCounts.get(b) - usageCounts.get(a);
-                    if (freqCompare === 0) {
-                        return pageIndexes.get(a) - pageIndexes.get(b);
-                    }
-                    return freqCompare;
-                })[0];
+            hitOrMiss = 'Miss';
+            compulsoryOrCapacity = cache.length < cacheSize ? 'Compulsory' : 'Capacity';
 
-                cache.splice(cache.indexOf(mfuPage), 1);
+            if (cache.length >= cacheSize) {
+                const mfuPage = [...cache].reduce((a, b) => usageCounts.get(a) > usageCounts.get(b) ? a : b);
+                evicted = mfuPage;
+                cache = cache.filter(p => p !== mfuPage);
             }
 
             cache.push(page);
@@ -181,7 +196,8 @@ function mfuPageReplacement(pages, cacheSize) {
             page,
             hitOrMiss,
             compulsoryOrCapacity,
-            cache: [...cache]
+            cache: [...cache],
+            evicted: evicted
         });
     });
 
@@ -190,50 +206,48 @@ function mfuPageReplacement(pages, cacheSize) {
 
 function lfuPageReplacement(pages, cacheSize) {
     let cache = [];
-    let accessFrequency = new Map(); // Frequency of each page's access
-    let insertionOrder = new Map(); // Order of insertion to resolve ties
+    let accessFrequency = new Map();
+    let lastAccessed = new Map();
     let results = [];
-    let order = 0; // To track the order of insertion
+    let time = 0;
 
-    pages.forEach(page => {
-        let hitOrMiss = 'Miss';
-        let compulsoryOrCapacity = 'Compulsory';
-        let evicted = '';
+    pages.forEach((page) => {
+        let hitOrMiss = "Miss";
+        let compulsoryOrCapacity = "Compulsory";
+        let evicted = null;
+        let evictedIndex = -1;
 
-        // Update or initialize the frequency and insertion order
+        // Update or initialize frequency count
         accessFrequency.set(page, (accessFrequency.get(page) || 0) + 1);
-        if (!insertionOrder.has(page)) {
-            insertionOrder.set(page, order++);
-        }
+        lastAccessed.set(page, time++);
 
         if (cache.includes(page)) {
-            hitOrMiss = 'Hit';
-            compulsoryOrCapacity = ''; // No capacity or compulsory miss on hit
+            hitOrMiss = "Hit";
+            compulsoryOrCapacity = "";
         } else {
             if (cache.length >= cacheSize) {
-                compulsoryOrCapacity = 'Capacity';
-
-                // Find the least frequently used page; if a tie, use insertion order to decide
-                let lfuPage = [...cache].sort((a, b) => {
-                    const freqCompare = accessFrequency.get(a) - accessFrequency.get(b);
-                    if (freqCompare === 0) { // If frequencies are the same, sort by insertion order
-                        return insertionOrder.get(a) - insertionOrder.get(b);
+                compulsoryOrCapacity = "Capacity";
+                let lfuPage = [...cache].reduce((lfu, currPage) => {
+                    const freqCompare = accessFrequency.get(currPage) - accessFrequency.get(lfu);
+                    if (freqCompare < 0 || (freqCompare === 0 && lastAccessed.get(currPage) < lastAccessed.get(lfu))) {
+                        return currPage;
                     }
-                    return freqCompare;
-                })[0];
+                    return lfu;
+                }, cache[0]);
 
-                evicted = lfuPage; // Track the evicted page for reporting
-                cache = cache.filter(page => page !== lfuPage); // Remove the LFU page from the cache
+                evicted = lfuPage;
+                evictedIndex = cache.findIndex((p) => p === lfuPage);
+                cache[evictedIndex] = page;
+            } else {
+                cache.push(page);
             }
-            cache.push(page); // Add the new page to the cache
         }
 
-        // Record the result for this iteration
         results.push({
             page,
             hitOrMiss,
             compulsoryOrCapacity,
-            cache: [...cache], // Clone to snapshot the current state
+            cache: [...cache],
             evicted: evicted
         });
     });
@@ -245,52 +259,48 @@ function minPageReplacement(pages, cacheSize) {
     let cache = [];
     let futureUses = {};
     let results = [];
-    let hits = 0;
-    let misses = 0;
 
-    for (let i = pages.length - 1; i >= 0; i--) {
-        if (!futureUses.hasOwnProperty(pages[i])) {
-            futureUses[pages[i]] = [];
-        }
-        futureUses[pages[i]].unshift(i);
-    }
+    pages.forEach((page, index) => {
+        if (!futureUses.hasOwnProperty(page)) futureUses[page] = [];
+        futureUses[page].push(index);
+    });
 
-    for (let i = 0; i < pages.length; i++) {
-        let page = pages[i];
+    pages.forEach((page) => {
         let hitOrMiss = '';
         let compulsoryOrCapacity = '';
+        let evicted = null;
+
+        futureUses[page].shift();
 
         if (cache.includes(page)) {
             hitOrMiss = 'Hit';
-            hits++;
         } else {
             hitOrMiss = 'Miss';
-            misses++;
             compulsoryOrCapacity = cache.length < cacheSize ? 'Compulsory' : 'Capacity';
 
             if (cache.length >= cacheSize) {
-                let maxDistance = -1, pageToReplace = null;
-                cache.forEach((p) => {
-                    if (futureUses[p].length === 0 || futureUses[p][0] > maxDistance) {
-                        pageToReplace = p;
-                        maxDistance = futureUses[p][0] || Number.MAX_SAFE_INTEGER;
-                    }
+                const pageToReplace = cache.reduce((furthestPage, current) => {
+                    const currentNextUse = futureUses[current].length > 0 ? futureUses[current][0] : Number.MAX_SAFE_INTEGER;
+                    const furthestNextUse = futureUses[furthestPage].length > 0 ? futureUses[furthestPage][0] : Number.MAX_SAFE_INTEGER;
+                    return currentNextUse > furthestNextUse ? current : furthestPage;
                 });
-
-                cache = cache.filter((p) => p !== pageToReplace);
+                evicted = pageToReplace;
+                cache = cache.filter(p => p !== pageToReplace);
             }
 
             cache.push(page);
         }
 
-        if (futureUses[page].length > 0) {
-            futureUses[page].shift();
-        }
+        results.push({
+            page,
+            hitOrMiss,
+            compulsoryOrCapacity,
+            cache: [...cache],
+            evicted: evicted
+        });
+    });
 
-        results.push({ page, hitOrMiss, compulsoryOrCapacity, cache: [...cache] });
-    }
-
-    return { results, hits, misses };
+    return { results };
 }
 
 const PageReplacement = ({ setResults }) => {
@@ -355,9 +365,9 @@ const PageReplacement = ({ setResults }) => {
 
     const handleClear = () => {
         if (window.confirm("This will clear everything. Are you sure?")) {
-            clearNumbers(); // Clear the data
-            resetListModified(); // Also reset any flags that might affect the UI, like graying out buttons
-            setActiveAlgorithm(''); // Reset active algorithm selection
+            clearNumbers();
+            resetListModified();
+            setActiveAlgorithm('');
         }
     };
 
@@ -420,6 +430,7 @@ const PageReplacement = ({ setResults }) => {
                         <TableCell className={classes.tableCell}>Cache</TableCell>
                         <TableCell className={classes.tableCell}>Hit/Miss</TableCell>
                         <TableCell className={classes.tableCell}>Type</TableCell>
+                        <TableCell className={classes.tableCell}>Eviction</TableCell> {/* New Column Header */}
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -429,6 +440,7 @@ const PageReplacement = ({ setResults }) => {
                             <TableCell className={classes.tableCell}>{result.cache.join(', ')}</TableCell>
                             <TableCell className={classes.tableCell}>{result.hitOrMiss}</TableCell>
                             <TableCell className={classes.tableCell}>{result.compulsoryOrCapacity}</TableCell>
+                            <TableCell className={classes.tableCell}>{result.evicted || '—'}</TableCell> {/* New Column Data */}
                         </TableRow>
                     ))}
                 </TableBody>
