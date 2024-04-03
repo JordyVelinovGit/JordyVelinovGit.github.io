@@ -9,8 +9,9 @@ const useStyles = makeStyles((theme) => ({
     numberInput: {
         width: '50%'
     },
-    noPadding: {
-        padding: 0,
+    rowNumberCell: {
+        width: '5%',
+        maxWidth: '5%',
     },
     draggableListWrapper: {
         margin: '0px',
@@ -29,7 +30,7 @@ const useStyles = makeStyles((theme) => ({
         position: 'sticky',
         top: 0,
         backgroundColor: '#fff',
-        zIndex: 1020, 
+        zIndex: 1020,
     },
     actionArea: {
         display: 'flex',
@@ -457,6 +458,7 @@ const PageReplacement = ({ setResults }) => {
                             <TableCell className={`${classes.tableCell} ${classes.stickyHeader}`}>Hit/Miss</TableCell>
                             <TableCell className={`${classes.tableCell} ${classes.stickyHeader}`}>Type</TableCell>
                             <TableCell className={`${classes.tableCell} ${classes.stickyHeader}`}>Eviction</TableCell>
+                            <TableCell className={`${classes.tableCell} ${classes.stickyHeader} ${classes.rowNumberCell}`}>Row Number</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
@@ -479,6 +481,7 @@ const PageReplacement = ({ setResults }) => {
                                     <TableCell className={classes.tableCell}>{result.hitOrMiss}</TableCell>
                                     <TableCell className={classes.tableCell}>{result.compulsoryOrCapacity}</TableCell>
                                     <TableCell className={classes.tableCell}>{result.evicted !== null && result.evicted !== undefined ? result.evicted : '—'}</TableCell>
+                                    <TableCell className={`${classes.tableCell} ${classes.rowNumberCell}`}>{`R${index + 1}`}</TableCell>
                                 </TableRow>
                             ))
                         ) : (
