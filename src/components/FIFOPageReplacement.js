@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { NumbersContext } from '../NumbersContext';
+import DraggableList from './DraggableList';
 import Grid from '@material-ui/core/Grid';
 import { makeStyles } from '@material-ui/core/styles';
 import { Table, TableBody, TableCell, TableHead, TableRow, TextField, Button } from '@material-ui/core';
@@ -8,11 +9,27 @@ const useStyles = makeStyles((theme) => ({
     numberInput: {
         width: '50%'
     },
+    noPadding: {
+        padding: 0,
+    },
+    draggableListWrapper: {
+        margin: '0px',
+    },
     button: {
         width: '75px'
     },
     clearButton: {
         width: '20%'
+    },
+    tableContainer: {
+        maxHeight: '700px', // Adjust as needed
+        overflow: 'auto',
+    },
+    stickyHeader: {
+        position: 'sticky',
+        top: 0,
+        backgroundColor: '#fff',
+        zIndex: 1020, 
     },
     actionArea: {
         display: 'flex',
@@ -21,10 +38,18 @@ const useStyles = makeStyles((theme) => ({
         marginBottom: theme.spacing(2),
     },
     table: {
-        minHeight: '400px',
         border: '1px solid #ddd',
         backgroundColor: '#28EEFF',
-        padding: theme.spacing(1),
+        padding: 0,
+    },
+    tableRow: {
+        height: '30px',
+    },
+    rowEven: {
+        backgroundColor: "#B3E0FF", // Light Blue
+    },
+    rowOdd: {
+        backgroundColor: "#3399FF", // Blue
     },
     pageNumberCell: {
         width: '20%',
@@ -318,7 +343,7 @@ const PageReplacement = ({ setResults }) => {
 
     useEffect(() => {
         if (listModified) {
-            setActiveAlgorithm('');
+            runAlgorithm(activeAlgorithm);
         }
     }, [listModified]);
 
@@ -423,28 +448,58 @@ const PageReplacement = ({ setResults }) => {
                     </Button>
                 </Grid>
             </Grid>
-            <Table className={classes.table}>
-                <TableHead>
-                    <TableRow className={classes.tableRow}>
-                        <TableCell className={classes.tableCell}>Page Number</TableCell>
-                        <TableCell className={classes.tableCell}>Cache</TableCell>
-                        <TableCell className={classes.tableCell}>Hit/Miss</TableCell>
-                        <TableCell className={classes.tableCell}>Type</TableCell>
-                        <TableCell className={classes.tableCell}>Eviction</TableCell> {/* New Column Header */}
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {results.map((result, index) => (
-                        <TableRow key={index} className={classes.tableRow}>
-                            <TableCell className={classes.tableCell}>{result.page}</TableCell>
-                            <TableCell className={classes.tableCell}>{result.cache.join(', ')}</TableCell>
-                            <TableCell className={classes.tableCell}>{result.hitOrMiss}</TableCell>
-                            <TableCell className={classes.tableCell}>{result.compulsoryOrCapacity}</TableCell>
-                            <TableCell className={classes.tableCell}>{result.evicted || '—'}</TableCell> {/* New Column Data */}
+            <div className={classes.tableContainer}>
+                <Table className={classes.table}>
+                    <TableHead>
+                        <TableRow className={classes.tableRow}>
+                            <TableCell className={`${classes.tableCell} ${classes.stickyHeader}`}>Page Number</TableCell>
+                            <TableCell className={`${classes.tableCell} ${classes.stickyHeader}`}>Cache</TableCell>
+                            <TableCell className={`${classes.tableCell} ${classes.stickyHeader}`}>Hit/Miss</TableCell>
+                            <TableCell className={`${classes.tableCell} ${classes.stickyHeader}`}>Type</TableCell>
+                            <TableCell className={`${classes.tableCell} ${classes.stickyHeader}`}>Eviction</TableCell>
                         </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
+                    </TableHead>
+                    <TableBody>
+                        {results.length > 0 ? (
+                            results.map((result, index) => (
+                                <TableRow key={index} className={`${classes.tableRow} ${index % 2 === 0 ? classes.rowEven : classes.rowOdd}`}>
+                                    {index === 0 && (
+                                        <TableCell
+                                            className={classes.tableCell}
+                                            rowSpan={results.length}
+                                            style={{ padding: 0 }}
+                                        >
+                                            <div className={classes.draggableListWrapper}>
+                                                <DraggableList />
+                                            </div>
+                                        </TableCell>
+                                    )}
+                                    {/* Render other cells for each result */}
+                                    <TableCell className={classes.tableCell}>{result.cache.join(', ')}</TableCell>
+                                    <TableCell className={classes.tableCell}>{result.hitOrMiss}</TableCell>
+                                    <TableCell className={classes.tableCell}>{result.compulsoryOrCapacity}</TableCell>
+                                    <TableCell className={classes.tableCell}>{result.evicted !== null && result.evicted !== undefined ? result.evicted : '—'}</TableCell>
+                                </TableRow>
+                            ))
+                        ) : (
+                            numbers.length > 0 && (
+                                <TableRow>
+                                    <TableCell
+                                        className={classes.tableCell}
+                                        style={{ padding: 0 }}
+                                        rowSpan={1}
+                                    >
+                                        <div className={classes.draggableListWrapper}>
+                                            <DraggableList />
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        )}
+                    </TableBody>
+
+                </Table>
+            </div>
         </div>
     );
 };

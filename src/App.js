@@ -49,9 +49,9 @@ class App extends React.Component {
                   <Grid item xs={12}>
                     <PageReplacementStats results={this.state.fifoResults} />
                   </Grid>
-                  <Grid item xs={12}>
+                  {/* <Grid item xs={12}>
                     <DraggableList />
-                  </Grid>
+                  </Grid> */}
                 </Grid>
               </Grid>
             </Grid>

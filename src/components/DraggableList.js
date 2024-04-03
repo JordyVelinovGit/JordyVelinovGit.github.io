@@ -16,14 +16,19 @@ import DeleteIcon from '@material-ui/icons/Delete';
 
 const useStyles = makeStyles({
   list: {
-    minHeight: '200px', // Adjust as needed
-    border: '1px solid #19473d',
-    padding: '10px',
+    padding: '0px',
   },
   listItem: {
+    minHeight: '60px',
     border: '1px solid #19473d', // Add border to each list item
-    marginBottom: '5px', // Optional: add space between items
+    marginBottom: '0px', // Optional: add space between items
     borderRadius: '4px', // Optional: round corners
+  },
+  listItemEven: {
+    backgroundColor: "#B3E0FF", // Slightly Lighter Blue
+  },
+  listItemOdd: {
+    backgroundColor: "#3399FF", // Darker Light Blue
   },
 });
 
@@ -60,28 +65,28 @@ const DraggableList = () => {
 
   const saveEdit = (id) => {
     if (editText.trim() !== '') {
-        let isModified = false; // Flag to track if the list was actually modified
+      let isModified = false; // Flag to track if the list was actually modified
 
-        const updatedNumbers = numbers.map(item => {
-            if (item.id === id) {
-                // Check if the edited value is different from the original value
-                if (item.primary !== editText.trim()) {
-                    isModified = true; // Mark as modified only if the value has changed
-                    return { ...item, primary: editText.trim() };
-                }
-            }
-            return item;
-        });
-
-        if (isModified) {
-            markListAsModified(); // Only mark as modified if there's an actual change
+      const updatedNumbers = numbers.map(item => {
+        if (item.id === id) {
+          // Check if the edited value is different from the original value
+          if (item.primary !== editText.trim()) {
+            isModified = true; // Mark as modified only if the value has changed
+            return { ...item, primary: editText.trim() };
+          }
         }
+        return item;
+      });
 
-        setNumbers(updatedNumbers);
+      if (isModified) {
+        markListAsModified(); // Only mark as modified if there's an actual change
+      }
+
+      setNumbers(updatedNumbers);
     }
     setEditingId(null);
     setEditText('');
-};
+  };
 
   const deleteItem = (id) => {
     const updatedNumbers = numbers.filter(item => item.id !== id);
@@ -125,11 +130,11 @@ const DraggableList = () => {
               <Draggable key={item.id} draggableId={item.id} index={index}>
                 {(provided, snapshot) => (
                   <ListItem
-                    className={classes.listItem}
+                  className={`${classes.listItem} ${index % 2 === 0 ? classes.listItemEven : classes.listItemOdd}`}
                     ref={provided.innerRef}
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
-                    style={getItemStyle(snapshot.isDragging, provided.draggableProps.style)}
+                    style={getItemStyle(snapshot.isDragging, provided.draggableProps.style)} F
                   >
                     {editingId === item.id ? (
                       <TextField
@@ -141,7 +146,6 @@ const DraggableList = () => {
                     ) : (
                       <ListItemText
                         primary={item.primary}
-                        // Optionally, use 'secondary' property if it exists
                         secondary={item.secondary}
                       />
                     )}
